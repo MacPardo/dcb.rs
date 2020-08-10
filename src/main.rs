@@ -1,4 +1,4 @@
-mod async_component_data;
+mod async_component_manager;
 mod models;
 
 use models::ComponentId;
