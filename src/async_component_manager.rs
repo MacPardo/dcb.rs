@@ -109,10 +109,31 @@ where
         unimplemented!();
     }
 
-    /// Deletes all messages and checkpoints whose timestamp is not greater than the passed argument
+    /// Deletes all checkpoints whose timestamp is not greater than ts
+    /// Deletes all sent messages whose sent_ts is not greater than ts
+    /// Deletes all received messages whose exec_ts is not greater than ts
     #[allow(dead_code)]
-    pub fn free(&mut self, timestamp: Timestamp) {
-        unimplemented!();
+    pub fn free(&mut self, ts: Timestamp) {
+        while let Some(first) = self.data.checkpoints.front() {
+            if first.timestamp > ts {
+                break;
+            }
+            self.data.checkpoints.pop_front();
+        }
+
+        while let Some(first) = self.data.received_messages.front() {
+            if first.exec_ts > ts {
+                break;
+            }
+            self.data.received_messages.pop_front();
+        }
+
+        while let Some(first) = self.data.sent_messages.front() {
+            if first.sent_ts > ts {
+                break;
+            }
+            self.data.sent_messages.pop_front();
+        }
     }
 
     /// Saves the current state and the LVT in a Checkpoint
@@ -409,8 +430,9 @@ mod test {
 
         manager.free(20);
         assert_ne!(manager, clone);
-        clone.data.sent_messages.pop_back();
-        clone.data.sent_messages.pop_back();
+        clone.data.sent_messages.pop_front();
+        clone.data.sent_messages.pop_front();
+        clone.data.checkpoints.pop_front();
         assert_eq!(manager, clone);
     }
 
@@ -441,8 +463,9 @@ mod test {
 
         manager.free(20);
         assert_ne!(manager, clone);
-        clone.data.sent_messages.pop_back();
-        clone.data.sent_messages.pop_back();
+        clone.data.sent_messages.pop_front();
+        clone.data.sent_messages.pop_front();
+        clone.data.checkpoints.pop_front();
         assert_eq!(manager, clone);
     }
 
@@ -459,9 +482,9 @@ mod test {
         let mut clone = manager.clone();
         manager.free(20);
         assert_ne!(manager, clone);
-        clone.data.checkpoints.pop_back();
-        clone.data.checkpoints.pop_back();
-        clone.data.checkpoints.pop_back();
+        clone.data.checkpoints.pop_front();
+        clone.data.checkpoints.pop_front();
+        clone.data.checkpoints.pop_front();
         assert_eq!(manager, clone);
     }
 
