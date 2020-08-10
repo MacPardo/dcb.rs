@@ -75,9 +75,25 @@ where
 
     /// This function must be called whenever the component sends or receives a message
     #[allow(dead_code)]
-    pub fn save_message(&mut self, message: Message) -> Result<(), Failure> {
-        if message.from != self.data.id && message.to != self.data.id || message.is_anti {
+    pub fn save_message(&mut self, msg: Message) -> Result<(), Failure> {
+        if msg.from != self.data.id && msg.to != self.data.id || msg.is_anti {
             return Err(Failure::InvalidMessage);
+        }
+
+        if msg.from == self.data.id {
+            if let Some(last) = self.data.sent_messages.back() {
+                if last.sent_ts > msg.sent_ts {
+                    return Err(Failure::TimeViolation);
+                }
+            }
+            self.data.sent_messages.push_back(msg);
+        } else {
+            if let Some(last) = self.data.received_messages.back() {
+                if last.exec_ts > msg.exec_ts {
+                    return Err(Failure::TimeViolation);
+                }
+            }
+            self.data.received_messages.push_back(msg);
         }
 
         return Ok(());
@@ -261,12 +277,32 @@ mod test {
 
     #[test]
     fn savemessage_appends_received_message_to_correct_list() {
-        unimplemented!();
+        let self_id = get_id(1);
+        let other_id = get_id(2);
+        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut msg = get_message();
+        msg.from = other_id.clone();
+        msg.to = self_id.clone();
+        let mut clone = manager.clone();
+        manager.save_message(msg.clone()).unwrap();
+        assert_ne!(manager, clone);
+        clone.data.received_messages.push_back(msg);
+        assert_eq!(manager, clone);
     }
 
     #[test]
     fn savemessage_appends_sent_message_to_correct_list() {
-        unimplemented!();
+        let self_id = get_id(1);
+        let other_id = get_id(2);
+        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut msg = get_message();
+        msg.from = self_id.clone();
+        msg.to = other_id.clone();
+        let mut clone = manager.clone();
+        manager.save_message(msg.clone()).unwrap();
+        assert_ne!(manager, clone);
+        clone.data.sent_messages.push_back(msg);
+        assert_eq!(manager, clone);
     }
 
     #[test]
@@ -304,26 +340,129 @@ mod test {
     }
 
     #[test]
-    fn savemessage_returns_timeviolation_if_new_sent_message_breaks_order() {}
+    fn savemessage_returns_timeviolation_if_new_sent_message_breaks_order() {
+        let self_id = get_id(1);
+        let other_id = get_id(2);
+        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut msg1 = get_message();
+        msg1.from = self_id;
+        msg1.to = other_id;
+
+        msg1.sent_ts = 10;
+        msg1.exec_ts = 100;
+        let mut msg2 = msg1.clone();
+        msg2.sent_ts = 5;
+        msg2.exec_ts = 100;
+
+        manager.save_message(msg1).unwrap();
+        match manager.save_message(msg2) {
+            Err(Failure::TimeViolation) => (),
+            _ => panic!(),
+        }
+    }
 
     #[test]
     fn savemessage_return_timeviolation_if_new_received_message_breaks_order() {
-        unimplemented!();
+        let self_id = get_id(1);
+        let other_id = get_id(2);
+        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut msg1 = get_message();
+        msg1.from = other_id;
+        msg1.to = self_id;
+
+        msg1.exec_ts = 10;
+        msg1.sent_ts = 1;
+        let mut msg2 = msg1.clone();
+        msg2.exec_ts = 5;
+
+        manager.save_message(msg1).unwrap();
+        match manager.save_message(msg2) {
+            Err(Failure::TimeViolation) => (),
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn free_removes_correct_sent_messages() {
-        unimplemented!();
+        let self_id = get_id(1);
+        let other_id = get_id(2);
+        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut msg1 = get_message();
+        msg1.from = self_id;
+        msg1.to = other_id;
+        msg1.sent_ts = 10;
+        msg1.exec_ts = 300;
+
+        let mut msg2 = msg1.clone();
+        msg2.sent_ts = 20;
+        msg2.exec_ts = 200;
+
+        let mut msg3 = msg1.clone();
+        msg3.sent_ts = 30;
+        msg3.exec_ts = 100;
+
+        manager.save_message(msg1).unwrap();
+        manager.save_message(msg2).unwrap();
+        manager.save_message(msg3).unwrap();
+
+        let mut clone = manager.clone();
+
+        manager.free(20);
+        assert_ne!(manager, clone);
+        clone.data.sent_messages.pop_back();
+        clone.data.sent_messages.pop_back();
+        assert_eq!(manager, clone);
     }
 
     #[test]
     fn free_removes_correct_received_messages() {
-        unimplemented!();
+        let self_id = get_id(1);
+        let other_id = get_id(2);
+        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut msg1 = get_message();
+        msg1.from = other_id;
+        msg1.to = self_id;
+        msg1.sent_ts = 30;
+        msg1.exec_ts = 100;
+
+        let mut msg2 = msg1.clone();
+        msg2.sent_ts = 20;
+        msg2.exec_ts = 200;
+
+        let mut msg3 = msg1.clone();
+        msg3.sent_ts = 10;
+        msg3.exec_ts = 300;
+
+        manager.save_message(msg1).unwrap();
+        manager.save_message(msg2).unwrap();
+        manager.save_message(msg3).unwrap();
+
+        let mut clone = manager.clone();
+
+        manager.free(20);
+        assert_ne!(manager, clone);
+        clone.data.sent_messages.pop_back();
+        clone.data.sent_messages.pop_back();
+        assert_eq!(manager, clone);
     }
 
     #[test]
     fn free_removes_correct_checkpoints() {
-        unimplemented!();
+        let mut manager = AsyncComponentManager::new(get_id(1), 123);
+        manager.update(11, 10).unwrap();
+        manager.take_checkpoint();
+        manager.update(22, 20).unwrap();
+        manager.take_checkpoint();
+        manager.update(33, 30).unwrap();
+        manager.take_checkpoint();
+
+        let mut clone = manager.clone();
+        manager.free(20);
+        assert_ne!(manager, clone);
+        clone.data.checkpoints.pop_back();
+        clone.data.checkpoints.pop_back();
+        clone.data.checkpoints.pop_back();
+        assert_eq!(manager, clone);
     }
 
     /// The checkpoints are insufficient when there is no checkpoint whose timestamp is less than
