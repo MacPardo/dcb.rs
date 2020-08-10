@@ -1,5 +1,5 @@
 use crate::models::{Checkpoint, ComponentId, Message, Timestamp};
-use std::collections::LinkedList;
+use std::collections::{HashSet, LinkedList};
 
 /// This must ONLY be used in the DCB, NOT IN THE COMPONENT.
 ///
@@ -14,16 +14,12 @@ use std::collections::LinkedList;
 /// Checkpoints and/or messages MIGHT be freed when:
 ///     1) The rollback method is called;
 ///     2) The free_until method is called;
+///     3) The save_message method is called with an antimessage
 ///
 /// A SINGLE message is ALWAYS saved when:
 ///     1) The save_message method is called;
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct AsyncComponentManager<State> {
-    data: AsyncComponentData<State>,
-}
-
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub struct AsyncComponentData<State> {
     pub state: State,
     pub lvt: Timestamp,
     pub id: ComponentId,
@@ -60,7 +56,7 @@ where
     /// Constructor
     #[allow(dead_code)]
     pub fn new(id: ComponentId, initial_state: State) -> AsyncComponentManager<State> {
-        let data = AsyncComponentData {
+        let mut manager = AsyncComponentManager {
             state: initial_state,
             lvt: 0,
             id: id,
@@ -68,7 +64,6 @@ where
             received_messages: LinkedList::new(),
             sent_messages: LinkedList::new(),
         };
-        let mut manager = AsyncComponentManager { data: data };
         manager.take_checkpoint();
         manager
     }
@@ -76,24 +71,24 @@ where
     /// This function must be called whenever the component sends or receives a message
     #[allow(dead_code)]
     pub fn save_message(&mut self, msg: Message) -> Result<(), Failure> {
-        if msg.from != self.data.id && msg.to != self.data.id || msg.is_anti {
+        if msg.from != self.id && msg.to != self.id {
             return Err(Failure::InvalidMessage);
         }
 
-        if msg.from == self.data.id {
-            if let Some(last) = self.data.sent_messages.back() {
+        if msg.from == self.id {
+            if let Some(last) = self.sent_messages.back() {
                 if last.sent_ts > msg.sent_ts {
                     return Err(Failure::TimeViolation);
                 }
             }
-            self.data.sent_messages.push_back(msg);
+            self.sent_messages.push_back(msg);
         } else {
-            if let Some(last) = self.data.received_messages.back() {
+            if let Some(last) = self.received_messages.back() {
                 if last.exec_ts > msg.exec_ts {
                     return Err(Failure::TimeViolation);
                 }
             }
-            self.data.received_messages.push_back(msg);
+            self.received_messages.push_back(msg);
         }
 
         return Ok(());
@@ -105,7 +100,7 @@ where
     ///
     /// Returns the messages that must be sent as a consequence of the rollback
     #[allow(dead_code)]
-    pub fn rollback(&mut self, rollback_ts: Timestamp) -> Result<LinkedList<Message>, Failure> {
+    pub fn rollback(&mut self, ts: Timestamp) -> Result<HashSet<Message>, Failure> {
         unimplemented!();
     }
 
@@ -114,36 +109,36 @@ where
     /// Deletes all received messages whose exec_ts is not greater than ts
     #[allow(dead_code)]
     pub fn free(&mut self, ts: Timestamp) {
-        while let Some(first) = self.data.checkpoints.front() {
+        while let Some(first) = self.checkpoints.front() {
             if first.timestamp > ts {
                 break;
             }
-            self.data.checkpoints.pop_front();
+            self.checkpoints.pop_front();
         }
 
-        while let Some(first) = self.data.received_messages.front() {
+        while let Some(first) = self.received_messages.front() {
             if first.exec_ts > ts {
                 break;
             }
-            self.data.received_messages.pop_front();
+            self.received_messages.pop_front();
         }
 
-        while let Some(first) = self.data.sent_messages.front() {
+        while let Some(first) = self.sent_messages.front() {
             if first.sent_ts > ts {
                 break;
             }
-            self.data.sent_messages.pop_front();
+            self.sent_messages.pop_front();
         }
     }
 
     /// Saves the current state and the LVT in a Checkpoint
     #[allow(dead_code)]
     pub fn take_checkpoint(&mut self) {
-        self.data.checkpoints.push_back(Checkpoint {
-            state: self.data.state.clone(),
-            timestamp: self.data.lvt,
+        self.checkpoints.push_back(Checkpoint {
+            state: self.state.clone(),
+            timestamp: self.lvt,
         });
-        self.data.lvt += 1;
+        self.lvt += 1;
     }
 
     /// This function must be called whenever the component's state changes
@@ -153,11 +148,11 @@ where
     /// Returns Err if timestamp < LVT
     #[allow(dead_code)]
     pub fn update(&mut self, state: State, lvt: Timestamp) -> Result<(), Failure> {
-        if lvt < self.data.lvt {
+        if lvt < self.lvt {
             return Err(Failure::TimeViolation);
         }
-        self.data.state = state;
-        self.data.lvt = lvt;
+        self.state = state;
+        self.lvt = lvt;
         return Ok(());
     }
 }
@@ -169,17 +164,15 @@ mod test {
 
     fn get_manager() -> AsyncComponentManager<i32> {
         AsyncComponentManager {
-            data: AsyncComponentData {
-                id: ComponentId {
-                    federate_id: 1,
-                    federation_id: 11,
-                },
-                lvt: 20,
-                state: 50,
-                checkpoints: LinkedList::new(),
-                received_messages: LinkedList::new(),
-                sent_messages: LinkedList::new(),
+            id: ComponentId {
+                federate_id: 1,
+                federation_id: 11,
             },
+            lvt: 20,
+            state: 50,
+            checkpoints: LinkedList::new(),
+            received_messages: LinkedList::new(),
+            sent_messages: LinkedList::new(),
         }
     }
 
@@ -226,14 +219,12 @@ mod test {
         assert_eq!(
             manager,
             AsyncComponentManager {
-                data: AsyncComponentData {
-                    state: initial_state,
-                    lvt: 1,
-                    id: id.clone(),
-                    checkpoints: checkpoints,
-                    sent_messages: LinkedList::new(),
-                    received_messages: LinkedList::new(),
-                }
+                state: initial_state,
+                lvt: 1,
+                id: id.clone(),
+                checkpoints: checkpoints,
+                sent_messages: LinkedList::new(),
+                received_messages: LinkedList::new(),
             }
         );
     }
@@ -244,12 +235,12 @@ mod test {
             let mut b = a.clone();
             b.take_checkpoint();
 
-            let last_checkpoint = b.data.checkpoints.back().unwrap();
-            assert_eq!(a.data.state, last_checkpoint.state);
-            assert_eq!(a.data.lvt, last_checkpoint.timestamp);
+            let last_checkpoint = b.checkpoints.back().unwrap();
+            assert_eq!(a.state, last_checkpoint.state);
+            assert_eq!(a.lvt, last_checkpoint.timestamp);
 
-            b.data.checkpoints.pop_back();
-            b.data.lvt -= 1;
+            b.checkpoints.pop_back();
+            b.lvt -= 1;
             assert_eq!(a, b);
         }
 
@@ -264,8 +255,8 @@ mod test {
     #[test]
     fn update_changes_fields_correctly() {
         let mut manager = get_manager();
-        manager.data.state = 20;
-        manager.data.lvt = 10;
+        manager.state = 20;
+        manager.lvt = 10;
         let clone = manager.clone();
 
         let new_lvt = 11;
@@ -274,13 +265,13 @@ mod test {
             Ok(_) => (),
             Err(_) => panic!(),
         }
-        assert_eq!(manager.data.id, clone.data.id);
-        assert_eq!(manager.data.checkpoints, clone.data.checkpoints);
-        assert_eq!(manager.data.sent_messages, clone.data.sent_messages);
-        assert_eq!(manager.data.received_messages, clone.data.received_messages);
+        assert_eq!(manager.id, clone.id);
+        assert_eq!(manager.checkpoints, clone.checkpoints);
+        assert_eq!(manager.sent_messages, clone.sent_messages);
+        assert_eq!(manager.received_messages, clone.received_messages);
 
-        assert_eq!(manager.data.state, new_state);
-        assert_eq!(manager.data.lvt, new_lvt);
+        assert_eq!(manager.state, new_state);
+        assert_eq!(manager.lvt, new_lvt);
     }
 
     #[test]
@@ -292,8 +283,8 @@ mod test {
             Err(Failure::TimeViolation) => (),
             _ => panic!(),
         }
-        assert_eq!(manager.data.state, original.data.state);
-        assert_eq!(manager.data.lvt, original.data.lvt);
+        assert_eq!(manager.state, original.state);
+        assert_eq!(manager.lvt, original.lvt);
     }
 
     #[test]
@@ -307,7 +298,7 @@ mod test {
         let mut clone = manager.clone();
         manager.save_message(msg.clone()).unwrap();
         assert_ne!(manager, clone);
-        clone.data.received_messages.push_back(msg);
+        clone.received_messages.push_back(msg);
         assert_eq!(manager, clone);
     }
 
@@ -322,24 +313,13 @@ mod test {
         let mut clone = manager.clone();
         manager.save_message(msg.clone()).unwrap();
         assert_ne!(manager, clone);
-        clone.data.sent_messages.push_back(msg);
+        clone.sent_messages.push_back(msg);
         assert_eq!(manager, clone);
     }
 
     #[test]
-    fn savemessage_returns_invalidmessage_if_new_message_is_anti() {
-        let self_id = get_id(1);
-        let other_id = get_id(2);
-        let mut msg = get_message();
-        msg.is_anti = true;
-        msg.from = self_id.clone();
-        msg.to = other_id.clone();
-        let mut manager = get_manager();
-        manager.data.id = self_id.clone();
-        match manager.save_message(msg) {
-            Err(Failure::InvalidMessage) => (),
-            _ => panic!(),
-        }
+    fn savemessage_handles_antimessages() {
+        unimplemented!();
     }
 
     #[test]
@@ -348,7 +328,7 @@ mod test {
         let other_id1 = get_id(2);
         let other_id2 = get_id(3);
         let mut manager = get_manager();
-        manager.data.id = self_id.clone();
+        manager.id = self_id.clone();
 
         let mut msg = get_message();
         msg.from = other_id1;
@@ -430,9 +410,9 @@ mod test {
 
         manager.free(20);
         assert_ne!(manager, clone);
-        clone.data.sent_messages.pop_front();
-        clone.data.sent_messages.pop_front();
-        clone.data.checkpoints.pop_front();
+        clone.sent_messages.pop_front();
+        clone.sent_messages.pop_front();
+        clone.checkpoints.pop_front();
         assert_eq!(manager, clone);
     }
 
@@ -463,9 +443,9 @@ mod test {
 
         manager.free(20);
         assert_ne!(manager, clone);
-        clone.data.sent_messages.pop_front();
-        clone.data.sent_messages.pop_front();
-        clone.data.checkpoints.pop_front();
+        clone.sent_messages.pop_front();
+        clone.sent_messages.pop_front();
+        clone.checkpoints.pop_front();
         assert_eq!(manager, clone);
     }
 
@@ -482,9 +462,9 @@ mod test {
         let mut clone = manager.clone();
         manager.free(20);
         assert_ne!(manager, clone);
-        clone.data.checkpoints.pop_front();
-        clone.data.checkpoints.pop_front();
-        clone.data.checkpoints.pop_front();
+        clone.checkpoints.pop_front();
+        clone.checkpoints.pop_front();
+        clone.checkpoints.pop_front();
         assert_eq!(manager, clone);
     }
 
@@ -493,8 +473,8 @@ mod test {
     #[test]
     fn rollback_returns_insufficientcheckpoints_if_checkpoints_are_insufficient() {
         let mut manager = get_manager();
-        manager.data.lvt = 10;
-        manager.data.checkpoints.clear();
+        manager.lvt = 10;
+        manager.checkpoints.clear();
         let clone = manager.clone();
         match manager.rollback(5) {
             Err(Failure::InsufficientCheckpoints) => (),
@@ -506,8 +486,8 @@ mod test {
     #[test]
     fn rollback_retuns_timeviolation_if_there_is_an_attempt_to_rollback_the_future() {
         let mut manager = get_manager();
-        manager.data.lvt = 10;
-        manager.data.checkpoints.clear();
+        manager.lvt = 10;
+        manager.checkpoints.clear();
         let clone = manager.clone();
         match manager.rollback(20) {
             Err(Failure::TimeViolation) => (),
@@ -515,7 +495,7 @@ mod test {
         }
         assert_eq!(manager, clone);
 
-        manager.data.checkpoints.push_back(Checkpoint {
+        manager.checkpoints.push_back(Checkpoint {
             state: 123,
             timestamp: 5,
         });
