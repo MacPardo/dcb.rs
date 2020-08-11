@@ -20,18 +20,18 @@ use std::collections::{HashSet, LinkedList};
 ///     1) The save_message method is called;
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct AsyncComponentManager<State> {
-    pub state: State,
-    pub lvt: Timestamp,
-    pub id: ComponentId,
+    state: State,
+    lvt: Timestamp,
+    id: ComponentId,
 
     // checkpoints must be in ascending timestamp order
-    pub checkpoints: LinkedList<Checkpoint<State>>,
+    checkpoints: LinkedList<Checkpoint<State>>,
 
     // received_messages must be in ascending exec_ts order
-    pub received_messages: LinkedList<Message>,
+    received_messages: LinkedList<Message>,
 
     // sent_messages must be in ascending sent_ts order
-    pub sent_messages: LinkedList<Message>,
+    sent_messages: LinkedList<Message>,
 }
 
 #[derive(Debug)]
@@ -100,12 +100,14 @@ where
     ///
     /// Returns the messages that must be sent as a consequence of the rollback
     #[allow(dead_code)]
-    pub fn rollback(&mut self, ts: Timestamp) -> Result<HashSet<Message>, Failure> {
+    pub fn rollback(&mut self, _ts: Timestamp) -> Result<HashSet<Message>, Failure> {
         unimplemented!();
     }
 
     /// Deletes all checkpoints whose timestamp is not greater than ts
+    ///
     /// Deletes all sent messages whose sent_ts is not greater than ts
+    ///
     /// Deletes all received messages whose exec_ts is not greater than ts
     #[allow(dead_code)]
     pub fn free(&mut self, ts: Timestamp) {
@@ -154,6 +156,31 @@ where
         self.state = state;
         self.lvt = lvt;
         return Ok(());
+    }
+
+    #[allow(dead_code)]
+    pub fn get_state(&self) -> &State {
+        &self.state
+    }
+
+    #[allow(dead_code)]
+    pub fn get_lvt(&self) -> Timestamp {
+        self.lvt
+    }
+
+    #[allow(dead_code)]
+    pub fn get_sent_messages(&self) -> &LinkedList<Message> {
+        &self.sent_messages
+    }
+
+    #[allow(dead_code)]
+    pub fn get_received_messages(&self) -> &LinkedList<Message> {
+        &self.sent_messages
+    }
+
+    #[allow(dead_code)]
+    pub fn get_checkpoints(&self) -> &LinkedList<Checkpoint<State>> {
+        &self.checkpoints
     }
 }
 

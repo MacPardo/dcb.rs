@@ -1,9 +1,10 @@
 mod async_component_manager;
 mod models;
 
-fn main() {
-    println!("Hello, world!");
-}
+use async_component_manager::AsyncComponentManager;
+use models::ComponentId;
+
+fn main() {}
 
 #[cfg(test)]
 mod test {}

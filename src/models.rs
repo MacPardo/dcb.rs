@@ -12,9 +12,9 @@ pub struct Message {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Checkpoint<AppState> {
+pub struct Checkpoint<State> {
     pub timestamp: Timestamp,
-    pub state: AppState,
+    pub state: State,
 }
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
