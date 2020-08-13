@@ -99,8 +99,54 @@ where
     ///
     /// Returns the messages that must be sent as a consequence of the rollback
     #[allow(dead_code)]
-    pub fn rollback(&mut self, _ts: Timestamp) -> Result<HashSet<Message>, Failure> {
-        unimplemented!();
+    pub fn rollback(&mut self, ts: Timestamp) -> Result<HashSet<Message>, Failure> {
+        let mut to_be_sent: HashSet<Message> = HashSet::new();
+
+        if ts > self.lvt {
+            return Err(Failure::TimeViolation);
+        }
+
+        match self.checkpoints.front() {
+            Some(first) => {
+                if first.timestamp > ts {
+                    return Err(Failure::InsufficientCheckpoints);
+                }
+            }
+            None => return Err(Failure::InsufficientCheckpoints),
+        }
+
+        loop {
+            match self.checkpoints.back() {
+                None => panic!(),
+                Some(last) => {
+                    if last.timestamp > ts {
+                        self.checkpoints.pop_back().unwrap();
+                    } else {
+                        self.lvt = last.timestamp;
+                        self.state = last.state.clone();
+                        break;
+                    }
+                }
+            }
+        }
+
+        while let Some(last) = self.received_messages.back() {
+            if last.exec_ts < ts {
+                break;
+            }
+            to_be_sent.insert(self.received_messages.pop_back().unwrap());
+        }
+
+        while let Some(last) = self.sent_messages.back() {
+            if last.sent_ts < ts {
+                break;
+            }
+            let mut msg = self.sent_messages.pop_back().unwrap();
+            msg.is_anti = true;
+            to_be_sent.insert(msg);
+        }
+
+        return Ok(to_be_sent);
     }
 
     /// Deletes all checkpoints whose timestamp is not greater than ts
@@ -548,29 +594,85 @@ mod test {
         assert_eq!(manager, clone);
     }
 
+    /// tests if the rollback function updates LVT and state correctly; removes correct checkpoints and messages; returns correct messages to be sent
     #[test]
-    fn rollback_updates_state_and_lvt_correctly() {
-        let mut manager = RollbackManager::new(get_id(1), 123);
-        manager.update(456, 10).unwrap();
-        manager.take_checkpoint();
-        let clone = manager.clone();
-        manager.update(789, 20).unwrap();
-        manager.rollback(10).unwrap();
-        assert_eq!(manager, clone);
-    }
-
-    #[test]
-    fn rollback_removes_correct_messages_and_checkpoints() {
+    fn rollback_changes_values_correctly() {
         let self_id = get_id(1);
         let other_id = get_id(2);
-        let mut rec1 = get_message();
+        let rec1 = Message {
+            content: String::default(),
+            from: other_id.clone(),
+            to: self_id.clone(),
+            sent_ts: 1,
+            exec_ts: 10,
+            id: 123,
+            is_anti: false,
+        };
+        let mut rec2 = rec1.clone();
+        rec2.exec_ts = 20;
+        let mut rec3 = rec1.clone();
+        rec3.exec_ts = 30;
+
+        let sent1 = Message {
+            content: String::default(),
+            from: self_id.clone(),
+            to: other_id.clone(),
+            sent_ts: 10,
+            exec_ts: 1000,
+            id: 321,
+            is_anti: false,
+        };
+        let mut sent2 = sent1.clone();
+        sent2.sent_ts = 20;
+        let mut sent3 = sent1.clone();
+        sent3.sent_ts = 30;
 
         let mut manager = RollbackManager::new(self_id.clone(), 123);
-        unimplemented!();
-    }
+        manager.save_message(rec1.clone()).unwrap();
+        manager.save_message(rec2.clone()).unwrap();
+        manager.save_message(rec3.clone()).unwrap();
+        manager.save_message(sent1.clone()).unwrap();
+        manager.save_message(sent2.clone()).unwrap();
+        manager.save_message(sent3.clone()).unwrap();
 
-    #[test]
-    fn rollback_returns_the_messages_that_must_be_sent_by_the_component() {
-        unimplemented!();
+        manager.update(222, 9).unwrap();
+        manager.take_checkpoint();
+        manager.update(999, 19).unwrap();
+        manager.take_checkpoint();
+        manager.update(777, 49).unwrap();
+        manager.take_checkpoint();
+        manager.update(888, 200).unwrap();
+        manager.take_checkpoint();
+
+        let mut clone: RollbackManager<i32> = manager.clone();
+
+        println!("before rollback {:#?}", manager);
+
+        let result = manager.rollback(20).unwrap();
+        assert_ne!(manager, clone);
+        clone.lvt = 20;
+        clone.state = 999;
+        clone.checkpoints.pop_back();
+        clone.checkpoints.pop_back();
+        clone.sent_messages.pop_back();
+        clone.sent_messages.pop_back();
+        clone.received_messages.pop_back();
+        clone.received_messages.pop_back();
+        assert_eq!(manager, clone);
+
+        let mut expected: HashSet<Message> = HashSet::new();
+        expected.insert(rec3.clone());
+        expected.insert(rec2.clone());
+        let mut anti2 = sent2.clone();
+        anti2.is_anti = true;
+        expected.insert(anti2);
+        let mut anti3 = sent3.clone();
+        anti3.is_anti = true;
+        expected.insert(anti3);
+
+        println!("result {:#?}", result);
+        println!("expected {:#?}", expected);
+
+        assert_eq!(result, expected);
     }
 }
