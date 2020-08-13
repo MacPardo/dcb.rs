@@ -1,8 +1,8 @@
-mod async_component_manager;
 mod models;
+mod rollback_manager;
 
-use async_component_manager::AsyncComponentManager;
 use models::ComponentId;
+use rollback_manager::RollbackManager;
 
 fn main() {}
 

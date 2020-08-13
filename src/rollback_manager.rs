@@ -3,7 +3,7 @@ use std::collections::{HashSet, LinkedList};
 
 /// This must ONLY be used in the DCB, NOT IN THE COMPONENT.
 ///
-/// AsyncComponentManager is responsible for managing a async component's checkpoint & message storage.
+/// RollbackManager is responsible for managing a async component's checkpoint & message storage.
 /// Whenever there is a rollback, it informs which messages must be sent as a consequence of the
 /// rollback.
 ///
@@ -14,12 +14,11 @@ use std::collections::{HashSet, LinkedList};
 /// Checkpoints and/or messages MIGHT be freed when:
 ///     1) The rollback method is called;
 ///     2) The free_until method is called;
-///     3) The save_message method is called with an antimessage
 ///
 /// A SINGLE message is ALWAYS saved when:
 ///     1) The save_message method is called;
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub struct AsyncComponentManager<State> {
+pub struct RollbackManager<State> {
     state: State,
     lvt: Timestamp,
     id: ComponentId,
@@ -49,14 +48,14 @@ pub enum Failure {
     InvalidMessage,
 }
 
-impl<State> AsyncComponentManager<State>
+impl<State> RollbackManager<State>
 where
     State: Clone,
 {
     /// Constructor
     #[allow(dead_code)]
-    pub fn new(id: ComponentId, initial_state: State) -> AsyncComponentManager<State> {
-        let mut manager = AsyncComponentManager {
+    pub fn new(id: ComponentId, initial_state: State) -> RollbackManager<State> {
+        let mut manager = RollbackManager {
             state: initial_state,
             lvt: 0,
             id: id,
@@ -71,7 +70,7 @@ where
     /// This function must be called whenever the component sends or receives a message
     #[allow(dead_code)]
     pub fn save_message(&mut self, msg: Message) -> Result<(), Failure> {
-        if msg.from != self.id && msg.to != self.id {
+        if msg.from != self.id && msg.to != self.id || msg.is_anti {
             return Err(Failure::InvalidMessage);
         }
 
@@ -136,11 +135,11 @@ where
     /// Saves the current state and the LVT in a Checkpoint
     #[allow(dead_code)]
     pub fn take_checkpoint(&mut self) {
+        self.lvt += 1;
         self.checkpoints.push_back(Checkpoint {
             state: self.state.clone(),
             timestamp: self.lvt,
         });
-        self.lvt += 1;
     }
 
     /// This function must be called whenever the component's state changes
@@ -189,8 +188,8 @@ mod test {
     use super::*;
     use crate::models::*;
 
-    fn get_manager() -> AsyncComponentManager<i32> {
-        AsyncComponentManager {
+    fn get_manager() -> RollbackManager<i32> {
+        RollbackManager {
             id: ComponentId {
                 federate_id: 1,
                 federation_id: 11,
@@ -235,17 +234,17 @@ mod test {
             federation_id: 5,
         };
         let initial_state = String::from("hello");
-        let manager = AsyncComponentManager::new(id.clone(), initial_state.clone());
+        let manager = RollbackManager::new(id.clone(), initial_state.clone());
 
         let mut checkpoints = LinkedList::new();
         checkpoints.push_back(Checkpoint {
-            timestamp: 0,
+            timestamp: 1,
             state: initial_state.clone(),
         });
 
         assert_eq!(
             manager,
-            AsyncComponentManager {
+            RollbackManager {
                 state: initial_state,
                 lvt: 1,
                 id: id.clone(),
@@ -257,14 +256,14 @@ mod test {
     }
 
     #[test]
-    fn takecheckpoint_adds_a_checkpoint_and_increments_lvt() {
-        fn test(a: AsyncComponentManager<i32>) {
+    fn takecheckpoint_increments_lvt_then_adds_a_checkpoint() {
+        fn test(a: RollbackManager<i32>) {
             let mut b = a.clone();
             b.take_checkpoint();
 
             let last_checkpoint = b.checkpoints.back().unwrap();
             assert_eq!(a.state, last_checkpoint.state);
-            assert_eq!(a.lvt, last_checkpoint.timestamp);
+            assert_eq!(a.lvt + 1, last_checkpoint.timestamp);
 
             b.checkpoints.pop_back();
             b.lvt -= 1;
@@ -318,7 +317,7 @@ mod test {
     fn savemessage_appends_received_message_to_correct_list() {
         let self_id = get_id(1);
         let other_id = get_id(2);
-        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg = get_message();
         msg.from = other_id.clone();
         msg.to = self_id.clone();
@@ -333,7 +332,7 @@ mod test {
     fn savemessage_appends_sent_message_to_correct_list() {
         let self_id = get_id(1);
         let other_id = get_id(2);
-        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg = get_message();
         msg.from = self_id.clone();
         msg.to = other_id.clone();
@@ -342,11 +341,6 @@ mod test {
         assert_ne!(manager, clone);
         clone.sent_messages.push_back(msg);
         assert_eq!(manager, clone);
-    }
-
-    #[test]
-    fn savemessage_handles_antimessages() {
-        unimplemented!();
     }
 
     #[test]
@@ -368,10 +362,26 @@ mod test {
     }
 
     #[test]
+    fn savemessage_returns_invalidmessage_if_new_message_is_anti() {
+        let self_id = get_id(1);
+        let other_id = get_id(2);
+        let mut msg = get_message();
+        msg.is_anti = true;
+        msg.from = self_id.clone();
+        msg.to = other_id.clone();
+        let mut manager = get_manager();
+        manager.id = self_id.clone();
+        match manager.save_message(msg) {
+            Err(Failure::InvalidMessage) => (),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
     fn savemessage_returns_timeviolation_if_new_sent_message_breaks_order() {
         let self_id = get_id(1);
         let other_id = get_id(2);
-        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg1 = get_message();
         msg1.from = self_id;
         msg1.to = other_id;
@@ -393,7 +403,7 @@ mod test {
     fn savemessage_return_timeviolation_if_new_received_message_breaks_order() {
         let self_id = get_id(1);
         let other_id = get_id(2);
-        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg1 = get_message();
         msg1.from = other_id;
         msg1.to = self_id;
@@ -414,7 +424,7 @@ mod test {
     fn free_removes_correct_sent_messages() {
         let self_id = get_id(1);
         let other_id = get_id(2);
-        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg1 = get_message();
         msg1.from = self_id;
         msg1.to = other_id;
@@ -447,7 +457,7 @@ mod test {
     fn free_removes_correct_received_messages() {
         let self_id = get_id(1);
         let other_id = get_id(2);
-        let mut manager = AsyncComponentManager::new(self_id.clone(), 123);
+        let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg1 = get_message();
         msg1.from = other_id;
         msg1.to = self_id;
@@ -478,7 +488,7 @@ mod test {
 
     #[test]
     fn free_removes_correct_checkpoints() {
-        let mut manager = AsyncComponentManager::new(get_id(1), 123);
+        let mut manager = RollbackManager::new(get_id(1), 123);
         manager.update(11, 10).unwrap();
         manager.take_checkpoint();
         manager.update(22, 20).unwrap();
@@ -486,8 +496,12 @@ mod test {
         manager.update(33, 30).unwrap();
         manager.take_checkpoint();
 
+        println!("manager before {:#?}", manager);
+
         let mut clone = manager.clone();
-        manager.free(20);
+        manager.free(21);
+
+        println!("manager after {:#?}", manager);
         assert_ne!(manager, clone);
         clone.checkpoints.pop_front();
         clone.checkpoints.pop_front();
@@ -536,11 +550,22 @@ mod test {
 
     #[test]
     fn rollback_updates_state_and_lvt_correctly() {
-        unimplemented!();
+        let mut manager = RollbackManager::new(get_id(1), 123);
+        manager.update(456, 10).unwrap();
+        manager.take_checkpoint();
+        let clone = manager.clone();
+        manager.update(789, 20).unwrap();
+        manager.rollback(10).unwrap();
+        assert_eq!(manager, clone);
     }
 
     #[test]
     fn rollback_removes_correct_messages_and_checkpoints() {
+        let self_id = get_id(1);
+        let other_id = get_id(2);
+        let mut rec1 = get_message();
+
+        let mut manager = RollbackManager::new(self_id.clone(), 123);
         unimplemented!();
     }
 
