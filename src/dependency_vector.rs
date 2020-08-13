@@ -133,28 +133,6 @@ mod test {
         }
     }
 
-    // #[test]
-    // fn update_returns_err_if_received_dvec_has_different_keys() {
-    //     let mut man1 = DependencyVector::new(get_id(1), vec![get_id(1), get_id(2)]);
-    //     let mut man2 = man1.clone();
-
-    //     let mut map: HashMap<ComponentId, Timestamp> = HashMap::new();
-    //     map.insert(get_id(1), 0);
-    //     match man1.update(&map) {
-    //         Err(()) => (),
-    //         Ok(()) => panic!(),
-    //     }
-
-    //     map.clear();
-    //     map.insert(get_id(1), 0);
-    //     map.insert(get_id(2), 0);
-    //     map.insert(get_id(3), 0);
-    //     match man2.update(&map) {
-    //         Err(()) => (),
-    //         Ok(()) => panic!(),
-    //     }
-    // }
-
     #[test]
     fn update_changes_values_correctly() {
         let mut manager = DependencyVector::new(get_id(1), vec![get_id(1), get_id(2), get_id(3)]);
