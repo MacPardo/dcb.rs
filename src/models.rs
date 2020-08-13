@@ -1,6 +1,6 @@
 pub type Timestamp = u64;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Message {
     pub sent_ts: Timestamp,
     pub exec_ts: Timestamp,
@@ -17,7 +17,7 @@ pub struct Checkpoint<State> {
     pub state: State,
 }
 
-#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct ComponentId {
     pub federation_id: u32,
     pub federate_id: u32,
