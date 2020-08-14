@@ -5,15 +5,16 @@ mod models;
 mod rollback_manager;
 
 use listener::run_listener;
+use models::*;
 use std::sync::mpsc;
 use std::thread;
 
 fn main() {
-    let (tx, rx) = mpsc::channel::<String>();
+    let (tx, rx) = mpsc::channel::<Message>();
 
     thread::spawn(move || run_listener("127.0.0.1:8888", tx));
 
     for msg in rx {
-        println!("got msg <{}>", msg);
+        println!("got msg {:#?}", msg);
     }
 }
