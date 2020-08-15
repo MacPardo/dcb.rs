@@ -1,0 +1,35 @@
+use crate::models::{ComponentId, Message};
+use std::collections::HashMap;
+use std::io::prelude::*;
+use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use std::sync::mpsc::{Receiver, Sender};
+
+const BUFFER_SIZE: usize = 1024;
+
+#[allow(dead_code)]
+pub fn run_server(address: impl ToSocketAddrs, sender: Sender<Message>) {
+    let listener = TcpListener::bind(address).unwrap();
+    for stream in listener.incoming() {
+        let mut stream = stream.unwrap();
+        let mut buffer = [0u8; BUFFER_SIZE];
+        stream.read(&mut buffer).unwrap();
+        let msg = String::from_utf8(buffer.to_vec()).unwrap();
+        let msg = msg.trim_matches(char::from(0));
+        let msg = msg.replace('\n', "");
+        let msg = serde_json::from_str(&msg.to_owned()).unwrap();
+        sender.send(msg).unwrap();
+    }
+}
+
+#[allow(dead_code)]
+pub fn run_client(
+    receiver: Receiver<Message>,
+    component_addr: &HashMap<ComponentId, impl ToSocketAddrs>,
+) {
+    for msg in receiver {
+        let addr = component_addr.get(&msg.to).unwrap();
+        let msg = serde_json::to_string(&msg).unwrap();
+        let mut stream = TcpStream::connect(addr).unwrap();
+        stream.write(msg.as_bytes()).unwrap();
+    }
+}
