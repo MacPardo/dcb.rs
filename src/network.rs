@@ -23,11 +23,11 @@ pub fn run_server(address: impl ToSocketAddrs, sender: Sender<Message>) {
 
 #[allow(dead_code)]
 pub fn run_client(
+    addresses: &HashMap<ComponentId, impl ToSocketAddrs>,
     receiver: Receiver<Message>,
-    component_addr: &HashMap<ComponentId, impl ToSocketAddrs>,
 ) {
     for msg in receiver {
-        let addr = component_addr.get(&msg.to).unwrap();
+        let addr = addresses.get(&msg.to).unwrap();
         let msg = serde_json::to_string(&msg).unwrap();
         let mut stream = TcpStream::connect(addr).unwrap();
         stream.write(msg.as_bytes()).unwrap();
