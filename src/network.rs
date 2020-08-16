@@ -2,13 +2,13 @@ use crate::messenger::Messenger;
 use crate::models::{ComponentId, Message};
 use std::collections::HashMap;
 use std::io::prelude::*;
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::Receiver;
 
 const BUFFER_SIZE: usize = 1024;
 
 #[allow(dead_code)]
-pub fn run_server(address: impl ToSocketAddrs, messenger: &Messenger) {
+pub fn run_server(address: String, messenger: &Messenger) {
     let listener = TcpListener::bind(address).unwrap();
     for stream in listener.incoming() {
         let mut stream = stream.unwrap();
@@ -23,10 +23,7 @@ pub fn run_server(address: impl ToSocketAddrs, messenger: &Messenger) {
 }
 
 #[allow(dead_code)]
-pub fn run_client(
-    addresses: &HashMap<ComponentId, impl ToSocketAddrs>,
-    receiver: Receiver<Message>,
-) {
+pub fn run_client(addresses: &HashMap<ComponentId, String>, receiver: Receiver<Message>) {
     for msg in receiver {
         let addr = addresses.get(&msg.to).unwrap();
         let msg = serde_json::to_string(&msg).unwrap();

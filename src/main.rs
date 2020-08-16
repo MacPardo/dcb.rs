@@ -1,4 +1,5 @@
 mod dependency_vector;
+mod init;
 mod message_queue;
 mod messenger;
 mod models;
