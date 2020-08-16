@@ -1,3 +1,4 @@
+mod application_dcb;
 mod dependency_vector;
 mod init;
 mod message_queue;

@@ -42,8 +42,13 @@ pub struct Checkpoint<State> {
     pub state: State,
 }
 
-#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct ComponentId {
     pub federation_id: u32,
     pub federate_id: u32,
+}
+
+#[derive(Clone, Copy)]
+pub struct ComponentCfg {
+    pub id: ComponentId,
 }

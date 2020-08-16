@@ -2,6 +2,7 @@ use crate::models::{ComponentId, Message};
 use std::collections::HashMap;
 use std::sync::mpsc::{SendError, Sender};
 
+#[derive(Clone)]
 pub struct Messenger {
     pub local_senders: HashMap<ComponentId, Sender<Message>>,
     pub network_sender: Sender<Message>,

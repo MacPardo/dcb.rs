@@ -8,7 +8,7 @@ use std::sync::mpsc::Receiver;
 const BUFFER_SIZE: usize = 1024;
 
 #[allow(dead_code)]
-pub fn run_server(address: String, messenger: &Messenger) {
+pub fn run_server(address: String, messenger: Messenger) {
     let listener = TcpListener::bind(address).unwrap();
     for stream in listener.incoming() {
         let mut stream = stream.unwrap();
