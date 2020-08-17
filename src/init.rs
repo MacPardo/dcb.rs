@@ -1,7 +1,7 @@
-use crate::application_dcb::application_dcb;
 use crate::messenger::Messenger;
 use crate::models::{ComponentCfg, ComponentId, Message};
 use crate::network::{run_client, run_server};
+use crate::run_comp_manager::run_comp_manager;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
@@ -40,7 +40,7 @@ pub fn init(
     let mut handles = Vec::new();
     for tuple in local_components {
         let messenger_clone = messenger.clone();
-        let handle = thread::spawn(move || application_dcb(tuple.0, messenger_clone, tuple.2));
+        let handle = thread::spawn(move || run_comp_manager(tuple.0, messenger_clone, tuple.2));
         handles.push(handle);
     }
 
