@@ -68,36 +68,22 @@ impl DependencyVector {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::models::*;
-
-    fn get_id(x: u32) -> ComponentId {
-        ComponentId {
-            federate_id: x,
-            federation_id: x,
-        }
-    }
 
     #[test]
     fn new_creates_correct_dependency_vector() {
-        let self_id = get_id(1);
-        let components = vec![get_id(1), get_id(2), get_id(3)];
+        let self_id = 1;
+        let components = vec![1, 2, 3];
         let manager = DependencyVector::new(self_id, components);
         let mut map: HashMap<ComponentId, Timestamp> = HashMap::new();
-        map.insert(get_id(1), 0);
-        map.insert(get_id(2), 0);
-        map.insert(get_id(3), 0);
-        assert_eq!(
-            manager,
-            DependencyVector {
-                id: get_id(1),
-                map: map
-            }
-        );
+        map.insert(1, 0);
+        map.insert(2, 0);
+        map.insert(3, 0);
+        assert_eq!(manager, DependencyVector { id: 1, map: map });
     }
 
     #[test]
     fn setselfts_returns_err_if_new_ts_is_lower_than_current_ts() {
-        let mut manager = DependencyVector::new(get_id(1), vec![get_id(1), get_id(2)]);
+        let mut manager = DependencyVector::new(1, vec![1, 2]);
         manager.set_self_ts(10).unwrap();
         match manager.set_self_ts(5) {
             Err(()) => (),
@@ -107,11 +93,11 @@ mod test {
 
     #[test]
     fn setselfts_updates_self_ts_correctly() {
-        let mut manager = DependencyVector::new(get_id(1), vec![get_id(1), get_id(2)]);
+        let mut manager = DependencyVector::new(1, vec![1, 2]);
         let mut clone = manager.clone();
         manager.set_self_ts(10).unwrap();
         assert_ne!(manager, clone);
-        clone.map.insert(get_id(1), 10);
+        clone.map.insert(1, 10);
         assert_eq!(manager, clone);
     }
 
@@ -123,10 +109,10 @@ mod test {
     /// The rollback dependency is inconsistent if other_dvec[self_id] > self_dvec[self_id]
     #[test]
     fn update_returns_err_if_rollback_dependency_is_inconsistent() {
-        let mut manager = DependencyVector::new(get_id(1), vec![get_id(1), get_id(2)]);
+        let mut manager = DependencyVector::new(1, vec![1, 2]);
         let mut map: HashMap<ComponentId, Timestamp> = HashMap::new();
-        map.insert(get_id(1), 10);
-        map.insert(get_id(2), 0);
+        map.insert(1, 10);
+        map.insert(2, 0);
         match manager.update(&map) {
             Err(()) => (),
             Ok(()) => panic!(),
@@ -135,29 +121,29 @@ mod test {
 
     #[test]
     fn update_changes_values_correctly() {
-        let mut manager = DependencyVector::new(get_id(1), vec![get_id(1), get_id(2), get_id(3)]);
+        let mut manager = DependencyVector::new(1, vec![1, 2, 3]);
         manager.set_self_ts(10).unwrap();
         let mut map: HashMap<ComponentId, Timestamp> = HashMap::new();
-        map.insert(get_id(1), 0);
-        map.insert(get_id(2), 10);
-        map.insert(get_id(3), 20);
+        map.insert(1, 0);
+        map.insert(2, 10);
+        map.insert(3, 20);
         manager.update(&map).unwrap();
-        map.insert(get_id(1), 10);
+        map.insert(1, 10);
         assert_eq!(manager.map, map);
-        assert_eq!(manager.id, get_id(1));
+        assert_eq!(manager.id, 1);
 
         map.clear();
-        map.insert(get_id(1), 8);
-        map.insert(get_id(2), 15);
-        map.insert(get_id(3), 16);
+        map.insert(1, 8);
+        map.insert(2, 15);
+        map.insert(3, 16);
         manager.update(&map).unwrap();
-        map.insert(get_id(1), 10);
-        map.insert(get_id(3), 20);
+        map.insert(1, 10);
+        map.insert(3, 20);
 
         println!("manager.map -> {:#?}", manager.map);
         println!("map -> {:#?}", map);
 
         assert_eq!(manager.map, map);
-        assert_eq!(manager.id, get_id(1));
+        assert_eq!(manager.id, 1);
     }
 }

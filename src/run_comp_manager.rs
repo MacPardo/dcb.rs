@@ -1,6 +1,6 @@
 use crate::message_queue::MessageQueue;
 use crate::messenger::Messenger;
-use crate::models::{ComponentCfg, ComponentId, Message};
+use crate::models::{ComponentCfg, Message};
 use rand::Rng;
 use std::sync::mpsc::Receiver;
 use std::thread;
@@ -28,10 +28,7 @@ pub fn run_comp_manager(_cfg: ComponentCfg, _messenger: Messenger, _receiver: Re
                 is_anti: false,
                 id: 1,
                 from: _cfg.id,
-                to: ComponentId {
-                    federate_id: id,
-                    federation_id: 1,
-                },
+                to: id,
             })
             .unwrap();
     }

@@ -236,10 +236,7 @@ mod test {
 
     fn get_manager() -> RollbackManager<i32> {
         RollbackManager {
-            id: ComponentId {
-                federate_id: 1,
-                federation_id: 11,
-            },
+            id: 1,
             lvt: 20,
             state: 50,
             checkpoints: LinkedList::new(),
@@ -255,30 +252,14 @@ mod test {
             is_anti: false,
             sent_ts: 100,
             exec_ts: 200,
-            from: ComponentId {
-                federate_id: 10,
-                federation_id: 20,
-            },
-            to: ComponentId {
-                federate_id: 100,
-                federation_id: 200,
-            },
-        }
-    }
-
-    fn get_id(x: u32) -> ComponentId {
-        ComponentId {
-            federate_id: x,
-            federation_id: x,
+            from: 10,
+            to: 100,
         }
     }
 
     #[test]
     fn new_creates_and_takes_a_checkpoint() {
-        let id = ComponentId {
-            federate_id: 4,
-            federation_id: 5,
-        };
+        let id = 4;
         let initial_state = String::from("hello");
         let manager = RollbackManager::new(id.clone(), initial_state.clone());
 
@@ -361,8 +342,8 @@ mod test {
 
     #[test]
     fn savemessage_appends_received_message_to_correct_list() {
-        let self_id = get_id(1);
-        let other_id = get_id(2);
+        let self_id = 1;
+        let other_id = 2;
         let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg = get_message();
         msg.from = other_id.clone();
@@ -376,8 +357,8 @@ mod test {
 
     #[test]
     fn savemessage_appends_sent_message_to_correct_list() {
-        let self_id = get_id(1);
-        let other_id = get_id(2);
+        let self_id = 1;
+        let other_id = 2;
         let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg = get_message();
         msg.from = self_id.clone();
@@ -391,9 +372,9 @@ mod test {
 
     #[test]
     fn savemessage_returns_invalidmessage_if_new_message_is_neither_sent_or_received_by_self() {
-        let self_id = get_id(1);
-        let other_id1 = get_id(2);
-        let other_id2 = get_id(3);
+        let self_id = 1;
+        let other_id1 = 2;
+        let other_id2 = 3;
         let mut manager = get_manager();
         manager.id = self_id.clone();
 
@@ -409,8 +390,8 @@ mod test {
 
     #[test]
     fn savemessage_returns_invalidmessage_if_new_message_is_anti() {
-        let self_id = get_id(1);
-        let other_id = get_id(2);
+        let self_id = 1;
+        let other_id = 2;
         let mut msg = get_message();
         msg.is_anti = true;
         msg.from = self_id.clone();
@@ -425,8 +406,8 @@ mod test {
 
     #[test]
     fn savemessage_returns_timeviolation_if_new_sent_message_breaks_order() {
-        let self_id = get_id(1);
-        let other_id = get_id(2);
+        let self_id = 1;
+        let other_id = 2;
         let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg1 = get_message();
         msg1.from = self_id;
@@ -447,8 +428,8 @@ mod test {
 
     #[test]
     fn savemessage_return_timeviolation_if_new_received_message_breaks_order() {
-        let self_id = get_id(1);
-        let other_id = get_id(2);
+        let self_id = 1;
+        let other_id = 2;
         let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg1 = get_message();
         msg1.from = other_id;
@@ -468,8 +449,8 @@ mod test {
 
     #[test]
     fn free_removes_correct_sent_messages() {
-        let self_id = get_id(1);
-        let other_id = get_id(2);
+        let self_id = 1;
+        let other_id = 2;
         let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg1 = get_message();
         msg1.from = self_id;
@@ -501,8 +482,8 @@ mod test {
 
     #[test]
     fn free_removes_correct_received_messages() {
-        let self_id = get_id(1);
-        let other_id = get_id(2);
+        let self_id = 1;
+        let other_id = 2;
         let mut manager = RollbackManager::new(self_id.clone(), 123);
         let mut msg1 = get_message();
         msg1.from = other_id;
@@ -534,7 +515,7 @@ mod test {
 
     #[test]
     fn free_removes_correct_checkpoints() {
-        let mut manager = RollbackManager::new(get_id(1), 123);
+        let mut manager = RollbackManager::new(1, 123);
         manager.update(11, 10).unwrap();
         manager.take_checkpoint();
         manager.update(22, 20).unwrap();
@@ -597,8 +578,8 @@ mod test {
     /// tests if the rollback function updates LVT and state correctly; removes correct checkpoints and messages; returns correct messages to be sent
     #[test]
     fn rollback_changes_values_correctly() {
-        let self_id = get_id(1);
-        let other_id = get_id(2);
+        let self_id = 1;
+        let other_id = 2;
         let rec1 = Message {
             content: String::default(),
             from: other_id.clone(),

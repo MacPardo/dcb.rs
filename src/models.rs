@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 pub type Timestamp = u64;
+pub type ComponentId = u16;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Message {
@@ -40,12 +41,6 @@ impl Message {
 pub struct Checkpoint<State> {
     pub timestamp: Timestamp,
     pub state: State,
-}
-
-#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub struct ComponentId {
-    pub federation_id: u32,
-    pub federate_id: u32,
 }
 
 #[derive(Clone, Copy)]

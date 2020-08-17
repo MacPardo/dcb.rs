@@ -57,19 +57,12 @@ mod test {
     use crate::models::*;
     use rand::Rng;
 
-    fn get_id(x: u32) -> ComponentId {
-        ComponentId {
-            federate_id: x,
-            federation_id: x,
-        }
-    }
-
     fn get_msg() -> Message {
         Message {
             exec_ts: 10,
             content: String::from(""),
-            from: get_id(1),
-            to: get_id(2),
+            from: 1,
+            to: 2,
             id: 123,
             is_anti: false,
             sent_ts: 1,
