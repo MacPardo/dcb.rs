@@ -49,6 +49,11 @@ impl MessageQueue {
     pub fn pop(&mut self) -> Option<Message> {
         self.vec.pop()
     }
+
+    #[allow(dead_code)]
+    pub fn size(&self) -> usize {
+        self.vec.len()
+    }
 }
 
 #[cfg(test)]
