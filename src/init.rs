@@ -37,16 +37,16 @@ pub fn init(
     let server_handle = thread::spawn(move || run_server(addr, messenger_clone));
     let client_handle = thread::spawn(move || run_client(&remote_addrs, net_receiver));
 
-    let mut handles = Vec::new();
-    for tuple in local_components {
-        let messenger_clone = messenger.clone();
-        let handle = thread::spawn(move || run_comp_manager(tuple.0, messenger_clone, tuple.2));
-        handles.push(handle);
-    }
+    // let mut handles = Vec::new();
+    // for tuple in local_components {
+    //     let messenger_clone = messenger.clone();
+    // let handle = thread::spawn(move || run_comp_manager(tuple.0, messenger_clone, tuple.2));
+    // handles.push(handle);
+    // }
 
-    for handle in handles {
-        handle.join().unwrap();
-    }
+    // for handle in handles {
+    // handle.join().unwrap();
+    // }
     server_handle.join().unwrap();
     client_handle.join().unwrap();
 }

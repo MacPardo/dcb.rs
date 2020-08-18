@@ -1,4 +1,6 @@
+mod component;
 mod dependency_vector;
+mod gateway;
 mod init;
 mod message_queue;
 mod messenger;
@@ -7,5 +9,6 @@ mod network;
 mod rollback_manager;
 mod run_comp_manager;
 mod sync_msg_queue;
+mod translator;
 
 fn main() {}
