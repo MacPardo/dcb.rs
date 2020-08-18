@@ -65,7 +65,10 @@ mod test {
     fn get_msg() -> Message {
         Message {
             exec_ts: 10,
-            content: String::from(""),
+            content: MsgContent {
+                path: String::default(),
+                payload: String::default(),
+            },
             from: 1,
             to: 2,
             id: 123,

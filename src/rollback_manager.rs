@@ -248,7 +248,10 @@ mod test {
     fn get_message() -> Message {
         Message {
             id: 10,
-            content: String::from("lkadjsfkl"),
+            content: MsgContent {
+                payload: String::from(""),
+                path: String::from(""),
+            },
             is_anti: false,
             sent_ts: 100,
             exec_ts: 200,
@@ -581,7 +584,10 @@ mod test {
         let self_id = 1;
         let other_id = 2;
         let rec1 = Message {
-            content: String::default(),
+            content: MsgContent {
+                payload: String::default(),
+                path: String::default(),
+            },
             from: other_id.clone(),
             to: self_id.clone(),
             sent_ts: 1,
@@ -595,7 +601,10 @@ mod test {
         rec3.exec_ts = 30;
 
         let sent1 = Message {
-            content: String::default(),
+            content: MsgContent {
+                payload: String::default(),
+                path: String::default(),
+            },
             from: self_id.clone(),
             to: other_id.clone(),
             sent_ts: 10,

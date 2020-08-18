@@ -10,8 +10,14 @@ pub struct Message {
     pub from: ComponentId,
     pub to: ComponentId,
     pub id: u32,
-    pub content: String,
+    pub content: MsgContent,
     pub is_anti: bool,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct MsgContent {
+    pub payload: String,
+    pub path: String,
 }
 
 impl Message {
@@ -31,7 +37,10 @@ impl Message {
             return Err(());
         }
         let mut msg = self.clone();
-        msg.content = String::new();
+        msg.content = MsgContent {
+            payload: String::default(),
+            path: String::default(),
+        };
         msg.is_anti = true;
         Ok(msg)
     }
