@@ -1,7 +1,6 @@
 use crate::messenger::Messenger;
 use crate::models::{ComponentCfg, ComponentId, Message};
 use crate::network::{run_client, run_server};
-use crate::run_comp_manager::run_comp_manager;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;

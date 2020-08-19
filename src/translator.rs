@@ -33,11 +33,14 @@ impl<State> Gateway<State> for Translator
 where
     State: Component,
 {
-    fn init(&self) -> Vec<Message> {
-        State::init()
+    fn init(&self) -> (State, Vec<Message>) {
+        let (initial_state, msgs) = State::init();
+        let msgs = msgs
             .into_iter()
             .map(|m_t| self.translate(m_t.0, 0, m_t.1))
-            .collect()
+            .collect();
+
+        (initial_state, msgs)
     }
 
     fn on_message(&self, state: State, lvt: Timestamp, message: &Message) -> (State, Vec<Message>) {

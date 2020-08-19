@@ -1,28 +1,19 @@
 use crate::gateway::Gateway;
 use crate::messenger::Messenger;
-use crate::models::{ComponentCfg, Message};
+use crate::models::ComponentCfg;
 use crate::rollback_manager::RollbackManager;
 use crate::sync_msg_queue::SyncMsgQueue;
-use std::sync::{mpsc::Receiver, Arc};
+use std::sync::Arc;
 
 #[allow(dead_code)]
 pub fn run_comp_manager<State: Clone>(
     config: ComponentCfg,
-    initial_state: State,
     gateway: impl Gateway<State>,
     messenger: Messenger,
-    receiver: Receiver<Message>,
+    queue: Arc<SyncMsgQueue>,
 ) {
-    let queue = Arc::new(SyncMsgQueue::new());
-
-    let queue_clone = queue.clone();
-    std::thread::spawn(move || {
-        for msg in receiver {
-            queue_clone.push(msg);
-        }
-    });
-
-    for msg in gateway.init() {
+    let (initial_state, initial_messages) = gateway.init();
+    for msg in initial_messages {
         messenger.send(msg).unwrap();
     }
 
