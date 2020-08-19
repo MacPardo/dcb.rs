@@ -6,20 +6,20 @@ use std::collections::HashMap;
 #[allow(dead_code)]
 pub struct Translator {
     pub local_id: ComponentId,
-    pub path_to_id: HashMap<String, ComponentId>,
+    pub route_to_dest: HashMap<String, (ComponentId, String)>,
 }
 
 impl Translator {
     pub fn translate(&self, msg_core: MsgCore, sent_ts: Timestamp) -> Message {
-        let destination = self.path_to_id[&msg_core.route];
+        let (destination_id, destination_route) = &self.route_to_dest[&msg_core.route];
         Message {
             id: 0,
             is_anti: false,
             from: self.local_id,
-            to: destination,
+            to: destination_id.clone(),
             sent_ts: sent_ts,
             exec_ts: msg_core.exec_ts,
-            route: msg_core.route,
+            route: destination_route.clone(),
             payload: msg_core.payload,
         }
     }
