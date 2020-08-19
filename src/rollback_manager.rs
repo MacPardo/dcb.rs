@@ -207,27 +207,27 @@ where
     }
 
     #[allow(dead_code)]
-    pub fn get_state(&self) -> &State {
+    pub fn state(&self) -> &State {
         &self.state
     }
 
     #[allow(dead_code)]
-    pub fn get_lvt(&self) -> Timestamp {
+    pub fn lvt(&self) -> Timestamp {
         self.lvt
     }
 
     #[allow(dead_code)]
-    pub fn get_sent_messages(&self) -> &LinkedList<Message> {
+    pub fn sent_messages(&self) -> &LinkedList<Message> {
         &self.sent_messages
     }
 
     #[allow(dead_code)]
-    pub fn get_received_messages(&self) -> &LinkedList<Message> {
+    pub fn received_messages(&self) -> &LinkedList<Message> {
         &self.sent_messages
     }
 
     #[allow(dead_code)]
-    pub fn get_checkpoints(&self) -> &LinkedList<Checkpoint<State>> {
+    pub fn checkpoints(&self) -> &LinkedList<Checkpoint<State>> {
         &self.checkpoints
     }
 }
