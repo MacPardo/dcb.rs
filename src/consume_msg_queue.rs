@@ -23,9 +23,9 @@ pub fn consume_msg_queue<State: Clone>(
     loop {
         let received = queue.pop();
 
-        let violates_lcc = received.content.exec_ts < rollback_manager.lvt();
+        let violates_lcc = received.core.exec_ts < rollback_manager.lvt();
         if violates_lcc {
-            let msgs = rollback_manager.rollback(received.content.exec_ts).unwrap();
+            let msgs = rollback_manager.rollback(received.core.exec_ts).unwrap();
             for msg in msgs {
                 messenger.send(msg).unwrap();
             }
@@ -35,7 +35,7 @@ pub fn consume_msg_queue<State: Clone>(
 
         let (new_state, msgs) = gateway.on_message(state, &received);
         rollback_manager
-            .update(new_state.clone(), received.content.exec_ts)
+            .update(new_state.clone(), received.core.exec_ts)
             .unwrap();
         state = new_state;
 

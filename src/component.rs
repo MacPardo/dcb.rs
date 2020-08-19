@@ -1,11 +1,11 @@
-use crate::models::{MsgContent, Timestamp};
+use crate::models::{MsgCore, Timestamp};
 
 pub trait Component {
-    fn init() -> (Self, Vec<MsgContent>)
+    fn init() -> (Self, Vec<MsgCore>)
     where
         Self: Sized;
 
-    fn on_message(self, lvt: Timestamp, msg: &MsgContent) -> (Self, Vec<MsgContent>)
+    fn on_message(self, lvt: Timestamp, msg: &MsgCore) -> (Self, Vec<MsgCore>)
     where
         Self: Sized;
 }
