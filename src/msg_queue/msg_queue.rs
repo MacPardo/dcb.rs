@@ -3,15 +3,15 @@ use crate::models::Message;
 use std::sync::{Condvar, Mutex};
 
 #[allow(dead_code)]
-pub struct SyncMsgQueue {
+pub struct MsgQueue {
     queue: Mutex<MsgQueueBase>,
     cvar: Condvar,
 }
 
-impl SyncMsgQueue {
+impl MsgQueue {
     #[allow(dead_code)]
-    pub fn new() -> SyncMsgQueue {
-        SyncMsgQueue {
+    pub fn new() -> MsgQueue {
+        MsgQueue {
             queue: Mutex::new(MsgQueueBase::new()),
             cvar: Condvar::new(),
         }

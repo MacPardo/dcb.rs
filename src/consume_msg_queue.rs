@@ -1,7 +1,7 @@
 use crate::gateway::Gateway;
 use crate::messenger::Messenger;
 use crate::models::ComponentId;
-use crate::msg_queue;
+use crate::msg_queue::MsgQueue;
 use crate::rollback_manager::RollbackManager;
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ pub fn consume_msg_queue<State: Clone>(
     gateway: impl Gateway<State>,
     should_take_checkpoint: fn(&State, &RollbackManager<State>) -> bool,
     messenger: Arc<Messenger>,
-    queue: Arc<msg_queue::SyncMsgQueue>,
+    queue: Arc<MsgQueue>,
 ) {
     let (initial_state, initial_messages) = gateway.init();
     for msg in initial_messages {
