@@ -37,7 +37,7 @@ where
 
     fn on_message(&self, state: State, message: Message) -> (State, Vec<Message>) {
         let message = MsgCore::new(message);
-        let (new_state, messages) = state.on_message(message.exec_ts, &message);
+        let (new_state, messages) = state.on_message(&message);
         let messages = messages
             .into_iter()
             .map(|m| self.translate(m, message.exec_ts))
