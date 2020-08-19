@@ -1,4 +1,5 @@
 mod component;
+mod consume_msg_queue;
 mod dependency_vector;
 mod gateway;
 mod init;
@@ -7,7 +8,6 @@ mod messenger;
 mod models;
 mod network;
 mod rollback_manager;
-mod run_comp_manager;
 mod sync_msg_queue;
 mod translator;
 

@@ -6,7 +6,7 @@ use crate::sync_msg_queue::SyncMsgQueue;
 use std::sync::Arc;
 
 #[allow(dead_code)]
-pub fn run_comp_manager<State: Clone>(
+pub fn consume_msg_queue<State: Clone>(
     config: ComponentCfg,
     gateway: impl Gateway<State>,
     messenger: Messenger,
