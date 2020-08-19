@@ -11,7 +11,7 @@ pub struct Translator {
 
 impl Translator {
     pub fn translate(&self, msg_core: MsgCore, sent_ts: Timestamp) -> Message {
-        let destination = self.path_to_id[&msg_core.path];
+        let destination = self.path_to_id[&msg_core.route];
         Message {
             id: 0,
             is_anti: false,
@@ -19,7 +19,7 @@ impl Translator {
             to: destination,
             sent_ts: sent_ts,
             exec_ts: msg_core.exec_ts,
-            path: msg_core.path,
+            route: msg_core.route,
             payload: msg_core.payload,
         }
     }

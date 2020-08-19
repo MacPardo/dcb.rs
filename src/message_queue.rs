@@ -64,7 +64,7 @@ mod test {
 
     fn get_msg() -> Message {
         Message {
-            path: String::default(),
+            route: String::default(),
             exec_ts: 10,
             payload: String::default(),
             from: 1,

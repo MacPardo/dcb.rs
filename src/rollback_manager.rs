@@ -252,7 +252,7 @@ mod test {
         Message {
             id: 10,
             payload: String::from(""),
-            path: String::from(""),
+            route: String::from(""),
             exec_ts: 200,
             is_anti: false,
             sent_ts: 100,
@@ -586,7 +586,7 @@ mod test {
         let other_id = 2;
         let rec1 = Message {
             payload: String::default(),
-            path: String::default(),
+            route: String::default(),
             exec_ts: 10,
             from: other_id.clone(),
             to: self_id.clone(),
@@ -601,7 +601,7 @@ mod test {
 
         let sent1 = Message {
             payload: String::default(),
-            path: String::default(),
+            route: String::default(),
             exec_ts: 1000,
             from: self_id.clone(),
             to: other_id.clone(),

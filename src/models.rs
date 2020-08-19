@@ -10,7 +10,7 @@ pub struct Message {
     pub from: ComponentId,
     pub to: ComponentId,
     pub payload: String,
-    pub path: String,
+    pub route: String,
     pub id: u32,
     pub is_anti: bool,
 }
@@ -18,7 +18,7 @@ pub struct Message {
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct MsgCore {
     pub payload: String,
-    pub path: String,
+    pub route: String,
     pub exec_ts: Timestamp,
 }
 
@@ -26,7 +26,7 @@ impl MsgCore {
     pub fn new(m: Message) -> MsgCore {
         MsgCore {
             payload: m.payload,
-            path: m.path,
+            route: m.route,
             exec_ts: m.exec_ts,
         }
     }
