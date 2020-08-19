@@ -6,10 +6,12 @@ pub type ComponentId = u16;
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Message {
     pub sent_ts: Timestamp,
+    pub exec_ts: Timestamp,
     pub from: ComponentId,
     pub to: ComponentId,
+    pub payload: String,
+    pub path: String,
     pub id: u32,
-    pub core: MsgCore,
     pub is_anti: bool,
 }
 
@@ -20,11 +22,21 @@ pub struct MsgCore {
     pub exec_ts: Timestamp,
 }
 
+impl MsgCore {
+    pub fn new(m: Message) -> MsgCore {
+        MsgCore {
+            payload: m.payload,
+            path: m.path,
+            exec_ts: m.exec_ts,
+        }
+    }
+}
+
 impl Message {
     #[allow(dead_code)]
     pub fn is_inverse_of(&self, other: &Self) -> bool {
         self.sent_ts == other.sent_ts
-            && self.core.exec_ts == other.core.exec_ts
+            && self.exec_ts == other.exec_ts
             && self.from == other.from
             && self.to == other.to
             && self.id == other.id
