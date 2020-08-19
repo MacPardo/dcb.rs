@@ -4,7 +4,7 @@ use std::cmp::Reverse;
 
 impl Ord for Message {
     fn cmp(&self, other: &Self) -> Ordering {
-        Reverse(self.exec_ts).cmp(&Reverse(other.exec_ts))
+        Reverse(self.content.exec_ts).cmp(&Reverse(other.content.exec_ts))
     }
 }
 
@@ -64,9 +64,9 @@ mod test {
 
     fn get_msg() -> Message {
         Message {
-            exec_ts: 10,
             content: MsgContent {
                 path: String::default(),
+                exec_ts: 10,
                 payload: String::default(),
             },
             from: 1,
@@ -81,10 +81,10 @@ mod test {
     #[test]
     fn messages_are_ordered_correctly() {
         let mut a = get_msg();
-        a.exec_ts = 10;
+        a.content.exec_ts = 10;
         a.sent_ts = 1;
         let mut b = a.clone();
-        b.exec_ts = 20;
+        b.content.exec_ts = 20;
 
         let mut rng = rand::thread_rng();
 
@@ -105,9 +105,9 @@ mod test {
         let mut x = get_msg();
         x.sent_ts = 5;
         let mut y = get_msg();
-        y.exec_ts = 10;
+        y.content.exec_ts = 10;
         let mut z = get_msg();
-        z.exec_ts = 15;
+        z.content.exec_ts = 15;
         let antix = x.get_anti().unwrap();
 
         q.push(x.clone());
@@ -134,7 +134,7 @@ mod test {
         let mut rng = rand::thread_rng();
         let mut aux = Vec::new();
         for _ in 0..100 {
-            m.exec_ts = rng.gen();
+            m.content.exec_ts = rng.gen();
             q.push(m.clone());
             aux.push(m.clone());
             aux.sort();

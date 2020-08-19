@@ -6,7 +6,6 @@ pub type ComponentId = u16;
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Message {
     pub sent_ts: Timestamp,
-    pub exec_ts: Timestamp,
     pub from: ComponentId,
     pub to: ComponentId,
     pub id: u32,
@@ -18,13 +17,14 @@ pub struct Message {
 pub struct MsgContent {
     pub payload: String,
     pub path: String,
+    pub exec_ts: Timestamp,
 }
 
 impl Message {
     #[allow(dead_code)]
     pub fn is_inverse_of(&self, other: &Self) -> bool {
         self.sent_ts == other.sent_ts
-            && self.exec_ts == other.exec_ts
+            && self.content.exec_ts == other.content.exec_ts
             && self.from == other.from
             && self.to == other.to
             && self.id == other.id
@@ -37,10 +37,6 @@ impl Message {
             return Err(());
         }
         let mut msg = self.clone();
-        msg.content = MsgContent {
-            payload: String::default(),
-            path: String::default(),
-        };
         msg.is_anti = true;
         Ok(msg)
     }

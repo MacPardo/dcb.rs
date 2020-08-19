@@ -14,7 +14,7 @@ impl Translator {
         &self,
         msg_content: MsgContent,
         sent_ts: Timestamp,
-        exec_ts: Timestamp,
+        _exec_ts: Timestamp,
     ) -> Message {
         let destination = self.path_to_id[&msg_content.path];
         Message {
@@ -24,7 +24,6 @@ impl Translator {
             from: self.local_id,
             to: destination,
             sent_ts: sent_ts,
-            exec_ts: exec_ts,
         }
     }
 }
@@ -43,11 +42,11 @@ where
         (initial_state, msgs)
     }
 
-    fn on_message(&self, state: State, lvt: Timestamp, message: &Message) -> (State, Vec<Message>) {
-        let (new_state, messages) = state.on_message(lvt, &message.content);
+    fn on_message(&self, state: State, message: &Message) -> (State, Vec<Message>) {
+        let (new_state, messages) = state.on_message(message.content.exec_ts, &message.content);
         let messages = messages
             .into_iter()
-            .map(|m_t| self.translate(m_t.0, lvt, m_t.1))
+            .map(|m_t| self.translate(m_t.0, message.content.exec_ts, m_t.1))
             .collect();
         (new_state, messages)
     }

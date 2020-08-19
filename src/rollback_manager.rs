@@ -86,7 +86,7 @@ where
             self.sent_messages.push_back(msg);
         } else {
             if let Some(last) = self.received_messages.back() {
-                if last.exec_ts > msg.exec_ts {
+                if last.content.exec_ts > msg.content.exec_ts {
                     return Err(Failure::TimeViolation);
                 }
             }
@@ -134,7 +134,7 @@ where
         }
 
         while let Some(last) = self.received_messages.back() {
-            if last.exec_ts < ts {
+            if last.content.exec_ts < ts {
                 break;
             }
             to_be_sent.insert(self.received_messages.pop_back().unwrap());
@@ -167,7 +167,7 @@ where
         }
 
         while let Some(first) = self.received_messages.front() {
-            if first.exec_ts > ts {
+            if first.content.exec_ts > ts {
                 break;
             }
             self.received_messages.pop_front();
@@ -254,10 +254,10 @@ mod test {
             content: MsgContent {
                 payload: String::from(""),
                 path: String::from(""),
+                exec_ts: 200,
             },
             is_anti: false,
             sent_ts: 100,
-            exec_ts: 200,
             from: 10,
             to: 100,
         }
@@ -420,10 +420,10 @@ mod test {
         msg1.to = other_id;
 
         msg1.sent_ts = 10;
-        msg1.exec_ts = 100;
+        msg1.content.exec_ts = 100;
         let mut msg2 = msg1.clone();
         msg2.sent_ts = 5;
-        msg2.exec_ts = 100;
+        msg2.content.exec_ts = 100;
 
         manager.save_message(msg1).unwrap();
         match manager.save_message(msg2) {
@@ -441,10 +441,10 @@ mod test {
         msg1.from = other_id;
         msg1.to = self_id;
 
-        msg1.exec_ts = 10;
+        msg1.content.exec_ts = 10;
         msg1.sent_ts = 1;
         let mut msg2 = msg1.clone();
-        msg2.exec_ts = 5;
+        msg2.content.exec_ts = 5;
 
         manager.save_message(msg1).unwrap();
         match manager.save_message(msg2) {
@@ -462,15 +462,15 @@ mod test {
         msg1.from = self_id;
         msg1.to = other_id;
         msg1.sent_ts = 10;
-        msg1.exec_ts = 300;
+        msg1.content.exec_ts = 300;
 
         let mut msg2 = msg1.clone();
         msg2.sent_ts = 20;
-        msg2.exec_ts = 200;
+        msg2.content.exec_ts = 200;
 
         let mut msg3 = msg1.clone();
         msg3.sent_ts = 30;
-        msg3.exec_ts = 100;
+        msg3.content.exec_ts = 100;
 
         manager.save_message(msg1).unwrap();
         manager.save_message(msg2).unwrap();
@@ -495,15 +495,15 @@ mod test {
         msg1.from = other_id;
         msg1.to = self_id;
         msg1.sent_ts = 30;
-        msg1.exec_ts = 100;
+        msg1.content.exec_ts = 100;
 
         let mut msg2 = msg1.clone();
         msg2.sent_ts = 20;
-        msg2.exec_ts = 200;
+        msg2.content.exec_ts = 200;
 
         let mut msg3 = msg1.clone();
         msg3.sent_ts = 10;
-        msg3.exec_ts = 300;
+        msg3.content.exec_ts = 300;
 
         manager.save_message(msg1).unwrap();
         manager.save_message(msg2).unwrap();
@@ -590,28 +590,28 @@ mod test {
             content: MsgContent {
                 payload: String::default(),
                 path: String::default(),
+                exec_ts: 10,
             },
             from: other_id.clone(),
             to: self_id.clone(),
             sent_ts: 1,
-            exec_ts: 10,
             id: 123,
             is_anti: false,
         };
         let mut rec2 = rec1.clone();
-        rec2.exec_ts = 20;
+        rec2.content.exec_ts = 20;
         let mut rec3 = rec1.clone();
-        rec3.exec_ts = 30;
+        rec3.content.exec_ts = 30;
 
         let sent1 = Message {
             content: MsgContent {
                 payload: String::default(),
                 path: String::default(),
+                exec_ts: 1000,
             },
             from: self_id.clone(),
             to: other_id.clone(),
             sent_ts: 10,
-            exec_ts: 1000,
             id: 321,
             is_anti: false,
         };
