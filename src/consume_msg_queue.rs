@@ -1,15 +1,16 @@
 use crate::gateway::Gateway;
 use crate::messenger::Messenger;
-use crate::models::ComponentCfg;
+use crate::models::ComponentId;
 use crate::rollback_manager::RollbackManager;
 use crate::sync_msg_queue::SyncMsgQueue;
 use std::sync::Arc;
 
 #[allow(dead_code)]
 pub fn consume_msg_queue<State: Clone>(
-    config: ComponentCfg,
+    component_id: ComponentId,
     gateway: impl Gateway<State>,
-    messenger: Messenger,
+    should_take_checkpoint: fn(&State, &RollbackManager<State>) -> bool,
+    messenger: Arc<Messenger>,
     queue: Arc<SyncMsgQueue>,
 ) {
     let (initial_state, initial_messages) = gateway.init();
@@ -17,8 +18,8 @@ pub fn consume_msg_queue<State: Clone>(
         messenger.send(msg).unwrap();
     }
 
-    let mut rollback_manager = RollbackManager::new(config.id, initial_state.clone());
-    let mut state = initial_state;
+    let mut rollback_manager = RollbackManager::new(component_id, initial_state.clone());
+    let mut current_state = initial_state;
 
     loop {
         let received = queue.pop();
@@ -31,12 +32,18 @@ pub fn consume_msg_queue<State: Clone>(
             }
         }
 
+        if received.exec_ts > rollback_manager.lvt()
+            && should_take_checkpoint(&current_state, &rollback_manager)
+        {
+            rollback_manager.take_checkpoint();
+        }
+
         rollback_manager.save_message(received.clone()).unwrap();
 
         let ts = received.exec_ts;
-        let (new_state, msgs) = gateway.on_message(state, received);
+        let (new_state, msgs) = gateway.on_message(current_state, received);
         rollback_manager.update(new_state.clone(), ts).unwrap();
-        state = new_state;
+        current_state = new_state;
 
         for msg in msgs {
             rollback_manager.save_message(msg.clone()).unwrap();
