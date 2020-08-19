@@ -10,12 +10,7 @@ pub struct Translator {
 }
 
 impl Translator {
-    pub fn translate(
-        &self,
-        msg_content: MsgContent,
-        sent_ts: Timestamp,
-        _exec_ts: Timestamp,
-    ) -> Message {
+    pub fn translate(&self, msg_content: MsgContent, sent_ts: Timestamp) -> Message {
         let destination = self.path_to_id[&msg_content.path];
         Message {
             content: msg_content,
@@ -33,20 +28,16 @@ where
     State: Component,
 {
     fn init(&self) -> (State, Vec<Message>) {
-        let (initial_state, msgs) = State::init();
-        let msgs = msgs
-            .into_iter()
-            .map(|m_t| self.translate(m_t.0, 0, m_t.1))
-            .collect();
-
-        (initial_state, msgs)
+        let (initial_state, messages) = State::init();
+        let messages = messages.into_iter().map(|m| self.translate(m, 0)).collect();
+        (initial_state, messages)
     }
 
     fn on_message(&self, state: State, message: &Message) -> (State, Vec<Message>) {
         let (new_state, messages) = state.on_message(message.content.exec_ts, &message.content);
         let messages = messages
             .into_iter()
-            .map(|m_t| self.translate(m_t.0, message.content.exec_ts, m_t.1))
+            .map(|m| self.translate(m, message.content.exec_ts))
             .collect();
         (new_state, messages)
     }
