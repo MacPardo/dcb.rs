@@ -22,8 +22,8 @@ pub struct MsgCore {
     pub exec_ts: Timestamp,
 }
 
-impl MsgCore {
-    pub fn new(m: Message) -> MsgCore {
+impl From<Message> for MsgCore {
+    fn from(m: Message) -> Self {
         MsgCore {
             payload: m.payload,
             route: m.route,
