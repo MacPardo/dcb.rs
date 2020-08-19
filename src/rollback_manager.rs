@@ -55,16 +55,19 @@ where
     /// Constructor
     #[allow(dead_code)]
     pub fn new(id: ComponentId, initial_state: State) -> RollbackManager<State> {
-        let mut manager = RollbackManager {
+        let mut checkpoints = LinkedList::new();
+        checkpoints.push_back(Checkpoint {
+            state: initial_state.clone(),
+            timestamp: 0,
+        });
+        RollbackManager {
             state: initial_state,
             lvt: 0,
             id: id,
-            checkpoints: LinkedList::new(),
+            checkpoints: checkpoints,
             received_messages: LinkedList::new(),
             sent_messages: LinkedList::new(),
-        };
-        manager.take_checkpoint();
-        manager
+        }
     }
 
     /// This function must be called whenever the component sends or receives a message
@@ -268,7 +271,7 @@ mod test {
 
         let mut checkpoints = LinkedList::new();
         checkpoints.push_back(Checkpoint {
-            timestamp: 1,
+            timestamp: 0,
             state: initial_state.clone(),
         });
 
@@ -276,7 +279,7 @@ mod test {
             manager,
             RollbackManager {
                 state: initial_state,
-                lvt: 1,
+                lvt: 0,
                 id: id.clone(),
                 checkpoints: checkpoints,
                 sent_messages: LinkedList::new(),
